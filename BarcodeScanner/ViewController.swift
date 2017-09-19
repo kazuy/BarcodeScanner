@@ -20,10 +20,5 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
-    // カメラ起動アクション
-    @IBAction func launchCamera(_ sender: Any) {
-        
-    }
-
 }
 
