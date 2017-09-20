@@ -1,5 +1,7 @@
 # BarcodeScanner
 
+![B-Scan](https://github.com/kazuy/BarcodeScanner/blob/master/icon/Icon-98@3x.png?raw=true)
+
 ## Overview
 
 This is sample iPhone application.  
