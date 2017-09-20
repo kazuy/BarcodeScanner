@@ -14,30 +14,31 @@ class SecondViewController: UIViewController {
     @IBOutlet weak var previewView: UIView!
     @IBOutlet weak var label: UILabel!
     
-    var captureSession: AVCaptureSession!
-    var captureDevice: AVCaptureDevice!
-    var captureOutput: AVCaptureMetadataOutput!
-    
+    // バーコード検知エリア
     let detectionArea = UIView()
-    var timer: Timer!
+    // 定期実行するタスク
+    var task: Timer!
+    // バーコードを検知していない場合にカウントアップする
     var counter = 0
+    // バーコードを検知したか？
     var isDetected = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        label.text = ""
         setUpCamera()
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
     
-    // MARK: private - http://dev.classmethod.jp/smartphone/ios-avfoundation-avcapturemetadataoutput-ean13-ean8/
+    // カメラのセットアップ
+    // 参考：http://dev.classmethod.jp/smartphone/ios-avfoundation-avcapturemetadataoutput-ean13-ean8/
     private func setUpCamera() {
-        captureSession = AVCaptureSession()
-        captureDevice = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
+        let captureSession = AVCaptureSession()
+        let captureDevice = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
         
         // Input
         do {
@@ -53,15 +54,9 @@ class SecondViewController: UIViewController {
         captureOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
         captureOutput.metadataObjectTypes = [AVMetadataObjectTypeEAN13Code,AVMetadataObjectTypeEAN8Code]
         
-        let x: CGFloat = 0.05
-        let y: CGFloat = 0.3
-        let width: CGFloat = 0.9
-        let height: CGFloat = 0.2
-        
         // 検出エリアの設定
-        captureOutput.rectOfInterest = CGRect(x: y,y: 1-x-width,width: height,height: width)
-        
-        detectionArea.frame = CGRect(x: view.frame.size.width * x, y: view.frame.size.height * y, width: view.frame.size.width * width, height: view.frame.size.height * height)
+        captureOutput.rectOfInterest = createRectOfInterest()
+        detectionArea.frame = createRectOfDetectionArea()
         detectionArea.layer.borderColor = UIColor.red.cgColor
         detectionArea.layer.borderWidth = 3
         view.addSubview(detectionArea)
@@ -75,14 +70,16 @@ class SecondViewController: UIViewController {
         
         // セッションの開始
         DispatchQueue.global(qos: .userInitiated).async {
-            self.captureSession.startRunning()
+            captureSession.startRunning()
         }
         
-        timer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(self.update), userInfo: nil, repeats: true)
-        timer.fire()
+        
+        task = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(self.update), userInfo: nil, repeats: true)
+        task.fire()
         
     }
     
+    // バーコードを検知していない場合
     func update(tm: Timer) {
         counter += 1
         print(counter)
@@ -91,6 +88,22 @@ class SecondViewController: UIViewController {
             detectionArea.layer.borderWidth = 3
             label.text = ""
         }
+    }
+    
+    // MARK: - Rectangle
+    let x: CGFloat = 0.05
+    let y: CGFloat = 0.3
+    let width: CGFloat = 0.9
+    let height: CGFloat = 0.2
+    
+    // 検出エリア(横向き指定となるためx,yが逆転する)
+    private func createRectOfInterest() -> CGRect {
+        return CGRect(x: y,y: 1-x-width,width: height,height: width)
+    }
+    
+    // 検出エリアの枠
+    private func createRectOfDetectionArea() -> CGRect {
+        return CGRect(x: view.frame.size.width * x, y: view.frame.size.height * y, width: view.frame.size.width * width, height: view.frame.size.height * height)
     }
 
     /*
@@ -105,8 +118,10 @@ class SecondViewController: UIViewController {
     
 }
 
+// MARK: - ViewController拡張
 extension SecondViewController: AVCaptureMetadataOutputObjectsDelegate {
-    
+
+    // captureOutput.metadataObjectTypesに指定したオブジェクトを検知した場合に呼び出されるデリゲートメソッド
     func captureOutput(_ captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [Any]!, from connection: AVCaptureConnection!) {
         // 複数のメタデータを検出できる
         for metadata in metadataObjects as! [AVMetadataMachineReadableCodeObject] {
